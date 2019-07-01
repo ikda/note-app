@@ -1,36 +1,30 @@
 import { NOTE_FRAGMENT } from "./fragments";
 import { GET_NOTES } from "./queries";
+import { saveNotes, restoreNotes } from "./offline";
 
 export const defaults = {
-	notes: [
-		{
-			__typename: "Note",
-			id: 1,
-			title: "First",
-			content: "- Second"
-		}
-	]
+	notes: restoreNotes()
 };
 export const typeDefs = [
 	`
-      schema {
-          query: Query
-          mutation: Mutation
-      }
-      type Query {
-          notes: [Note]!
-          note(id: Int!): Note
-      }
-      type Mutation{
-          createNote(title: String!, content: String!): Note
-          editNote(id: Int!, title: String!, content:String!): Note
-      }
-      type Note{
-          id: Int!
-          title: String!
-          content: String!
-      }
-      `
+    schema {
+        query: Query
+        mutation: Mutation
+    }
+    type Query {
+        notes: [Note]!
+        note(id: Int!): Note
+    }
+    type Mutation{
+        createNote(title: String!, content: String!): Note
+        editNote(id: Int!, title: String, content:String): Note
+    }
+    type Note{
+        id: Int!
+        title: String!
+        content: String!
+    }
+    `
 ];
 export const resolvers = {
 	Query: {
@@ -58,6 +52,7 @@ export const resolvers = {
 					notes: [newNote, ...notes]
 				}
 			});
+			saveNotes(cache);
 			return newNote;
 		},
 		editNote: (_, { id, title, content }, { cache }) => {
@@ -66,7 +61,7 @@ export const resolvers = {
 				id
 			});
 			const note = cache.readFragment({ fragment: NOTE_FRAGMENT, id: noteId });
-			const updateNote = {
+			const updatedNote = {
 				...note,
 				title,
 				content
@@ -74,9 +69,10 @@ export const resolvers = {
 			cache.writeFragment({
 				id: noteId,
 				fragment: NOTE_FRAGMENT,
-				data: updateNote
+				data: updatedNote
 			});
-			return updateNote;
+			saveNotes(cache);
+			return updatedNote;
 		}
 	}
 };
